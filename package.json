@@ -2,6 +2,9 @@
   "name": "ai-sdk-gateway-demo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,13 +13,12 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.79",
-    "@ai-sdk/gateway": "2.0.27",
-    "@ai-sdk/react": "2.0.123",
+    "@ai-sdk/anthropic": "4.0.0-canary.59",
+    "@ai-sdk/react": "4.0.0-canary.154",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-select": "^2.2.2",
     "@radix-ui/react-slot": "^1.2.0",
-    "ai": "5.0.121",
+    "ai": "7.0.0-canary.152",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.506.0",

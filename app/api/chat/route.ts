@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: anthropic(modelId),
-    system: "You are a software engineer exploring Generative AI.",
+    instructions: "You are a software engineer exploring Generative AI.",
     messages: convertToModelMessages(messages),
     onError: (e) => {
       console.error("Error while streaming.", e);
