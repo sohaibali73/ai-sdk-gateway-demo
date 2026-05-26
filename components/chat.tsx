@@ -7,7 +7,7 @@ import { ModelSelector } from "@/components/model-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { SendIcon, PlusIcon } from "lucide-react";
+import { SendIcon, PlusIcon, PaperclipIcon, XIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { DEFAULT_MODEL } from "@/lib/constants";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -38,7 +38,9 @@ function ModelSelectorHandler({
 export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
   const [input, setInput] = useState("");
   const [currentModelId, setCurrentModelId] = useState(modelId);
+  const [attachments, setAttachments] = useState<{ url: string; type: string; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleModelIdChange = (newModelId: string) => {
     setCurrentModelId(newModelId);
@@ -64,6 +66,49 @@ export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
     stop();
     setMessages([]);
     setInput("");
+    setAttachments([]);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setAttachments((prev) => [
+          ...prev,
+          { url: dataUrl, type: file.type, name: file.name },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() && attachments.length === 0) return;
+
+    const files = attachments.map((att) => ({
+      mediaType: att.type,
+      url: att.url,
+    }));
+
+    sendMessage(
+      { text: input, files },
+      { body: { modelId: currentModelId } }
+    );
+    setInput("");
+    setAttachments([]);
   };
 
   return (
@@ -88,45 +133,80 @@ export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
               </span>
             </h1>
             <div className="w-full animate-slide-up" style={{ animationDelay: '100ms' }}>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendMessage({ text: input }, { body: { modelId: currentModelId } });
-                  setInput("");
-                }}
-              >
-                <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-2xl glass-effect shadow-border-medium transition-all duration-200 ease-out">
-                  <ModelSelectorHandler
-                    modelId={modelId}
-                    onModelIdChange={handleModelIdChange}
-                  />
-                  <div className="flex flex-1 items-center">
-                    <Input
-                      name="prompt"
-                      placeholder="Ask a question..."
-                      onChange={(e) => setInput(e.target.value)}
-                      value={input}
-                      autoFocus
-                      className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-muted-foreground/60"
-                      onKeyDown={(e) => {
-                        if (e.metaKey && e.key === "Enter") {
-                          sendMessage(
-                            { text: input },
-                            { body: { modelId: currentModelId } },
-                          );
-                          setInput("");
-                        }
-                      }}
+              <form onSubmit={handleSubmit}>
+                <div className="flex flex-col gap-2">
+                  {attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 px-3">
+                      {attachments.map((att, index) => (
+                        <div key={index} className="relative group">
+                          {att.type.startsWith("image/") ? (
+                            <img
+                              src={att.url}
+                              alt={att.name}
+                              className="h-16 w-16 object-cover rounded-lg border"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 flex items-center justify-center rounded-lg border bg-muted text-xs text-center p-1">
+                              {att.name}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-2xl glass-effect shadow-border-medium transition-all duration-200 ease-out">
+                    <ModelSelectorHandler
+                      modelId={modelId}
+                      onModelIdChange={handleModelIdChange}
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      multiple
+                      className="hidden"
                     />
                     <Button
-                      type="submit"
+                      type="button"
                       size="icon"
                       variant="ghost"
                       className="h-9 w-9 rounded-xl hover:bg-muted/50"
-                      disabled={!input.trim()}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      <SendIcon className="h-4 w-4" />
+                      <PaperclipIcon className="h-4 w-4" />
                     </Button>
+                    <div className="flex flex-1 items-center">
+                      <Input
+                        name="prompt"
+                        placeholder="Ask a question..."
+                        onChange={(e) => setInput(e.target.value)}
+                        value={input}
+                        autoFocus
+                        className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-muted-foreground/60"
+                        onKeyDown={(e) => {
+                          if (e.metaKey && e.key === "Enter") {
+                            handleSubmit(e);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 rounded-xl hover:bg-muted/50"
+                        disabled={!input.trim() && attachments.length === 0}
+                      >
+                        <SendIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </form>
@@ -158,6 +238,20 @@ export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
                         ) : (
                           <div key={`${m.id}-${i}`}>{part.text}</div>
                         );
+                      case "file":
+                        if (part.mediaType?.startsWith("image/")) {
+                          return (
+                            <img
+                              key={`${m.id}-${i}`}
+                              src={part.url}
+                              alt="Uploaded image"
+                              className="max-w-full h-auto rounded-lg mb-2"
+                            />
+                          );
+                        }
+                        return null;
+                      default:
+                        return null;
                     }
                   })}
                 </div>
@@ -193,44 +287,73 @@ export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
       {hasMessages && (
         <div className="w-full max-w-4xl mx-auto">
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage({ text: input }, { body: { modelId: currentModelId } });
-              setInput("");
-            }}
+            onSubmit={handleSubmit}
             className="px-4 md:px-8 pb-6 md:pb-8"
           >
-            <div className="flex items-center gap-3 p-4 rounded-2xl glass-effect shadow-border-medium transition-all duration-200 ease-out">
-              <ModelSelectorHandler
-                modelId={modelId}
-                onModelIdChange={handleModelIdChange}
-              />
-              <div className="flex flex-1 items-center">
-                <Input
-                  name="prompt"
-                  placeholder="Ask a question..."
-                  onChange={(e) => setInput(e.target.value)}
-                  value={input}
-                  className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-muted-foreground/60 font-medium"
-                  onKeyDown={(e) => {
-                    if (e.metaKey && e.key === "Enter") {
-                      sendMessage(
-                        { text: input },
-                        { body: { modelId: currentModelId } },
-                      );
-                      setInput("");
-                    }
-                  }}
+            <div className="flex flex-col gap-2">
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-3">
+                  {attachments.map((att, index) => (
+                    <div key={index} className="relative group">
+                      {att.type.startsWith("image/") ? (
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          className="h-16 w-16 object-cover rounded-lg border"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 flex items-center justify-center rounded-lg border bg-muted text-xs text-center p-1">
+                          {att.name}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-3 p-4 rounded-2xl glass-effect shadow-border-medium transition-all duration-200 ease-out">
+                <ModelSelectorHandler
+                  modelId={modelId}
+                  onModelIdChange={handleModelIdChange}
                 />
                 <Button
-                  type="submit"
+                  type="button"
                   size="icon"
                   variant="ghost"
-                  className="h-9 w-9 rounded-xl hover:bg-accent hover:text-accent-foreground hover:scale-110 transition-all duration-150 ease disabled:opacity-50 disabled:hover:scale-100"
-                  disabled={!input.trim()}
+                  className="h-9 w-9 rounded-xl hover:bg-muted/50"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <SendIcon className="h-4 w-4" />
+                  <PaperclipIcon className="h-4 w-4" />
                 </Button>
+                <div className="flex flex-1 items-center">
+                  <Input
+                    name="prompt"
+                    placeholder="Ask a question..."
+                    onChange={(e) => setInput(e.target.value)}
+                    value={input}
+                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-muted-foreground/60 font-medium"
+                    onKeyDown={(e) => {
+                      if (e.metaKey && e.key === "Enter") {
+                        handleSubmit(e);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 rounded-xl hover:bg-accent hover:text-accent-foreground hover:scale-110 transition-all duration-150 ease disabled:opacity-50 disabled:hover:scale-100"
+                    disabled={!input.trim() && attachments.length === 0}
+                  >
+                    <SendIcon className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
