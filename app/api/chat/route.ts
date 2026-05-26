@@ -5,10 +5,9 @@ import { anthropic } from "@/lib/gateway";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    modelId = DEFAULT_MODEL,
-  }: { messages: UIMessage[]; modelId: string } = await req.json();
+  const body = await req.json();
+  const messages: UIMessage[] = body.messages;
+  const modelId: string = body.modelId || DEFAULT_MODEL;
 
   if (!SUPPORTED_MODELS.includes(modelId)) {
     return new Response(
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: anthropic(modelId),
     instructions: "You are a software engineer exploring Generative AI.",
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     onError: (e) => {
       console.error("Error while streaming.", e);
     },

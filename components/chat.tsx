@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useRouter } from "next/navigation";
 import { ModelSelector } from "@/components/model-selector";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,11 @@ export function Chat({ modelId = DEFAULT_MODEL }: { modelId: string }) {
     setCurrentModelId(newModelId);
   };
 
-  const { messages, error, sendMessage, regenerate, setMessages, stop, status } = useChat();
+  const { messages, error, sendMessage, regenerate, setMessages, stop, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+  });
 
   const hasMessages = messages.length > 0;
 
