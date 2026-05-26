@@ -1,6 +1,6 @@
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { DEFAULT_MODEL, SUPPORTED_MODELS } from "@/lib/constants";
-import { gateway } from "@/lib/gateway";
+import { anthropic } from "@/lib/gateway";
 
 export const maxDuration = 60;
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: gateway(modelId),
+    model: anthropic(modelId),
     system: "You are a software engineer exploring Generative AI.",
     messages: convertToModelMessages(messages),
     onError: (e) => {

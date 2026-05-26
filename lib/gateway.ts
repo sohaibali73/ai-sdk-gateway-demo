@@ -1,5 +1,5 @@
-import { createGatewayProvider } from "@ai-sdk/gateway";
+import { createAnthropic } from "@ai-sdk/anthropic";
 
-export const gateway = createGatewayProvider({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
+export const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
