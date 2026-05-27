@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Gateway Demo",
-  description: "A demo of the Vercel AI Gateway with the AI SDK by Vercel",
+  title: "Chat Assistant",
+  description: "A sleek and minimal AI chat interface built with Next.js.",
 };
 
 export default function RootLayout({
